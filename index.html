@@ -22,7 +22,8 @@
   .tile-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
   .tile { position: relative; aspect-ratio: 3 / 4; min-width: 0; border: none; border-radius: 16px; background: #eef1fb; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s; overflow: hidden; }
   .tile:active { transform: scale(.95); }
-  .tile .ch { font-size: 40px; font-weight: 800; color: #2c2c40; line-height: 1; }
+  .tile .ch { display: block; line-height: 0; }
+  .dglyph { display: block; width: auto; }
   .tile .wd { font-size: 11px; color: #8a90a0; margin-top: 6px; }
   .tile .star { position: absolute; top: 3px; right: 4px; font-size: 13px; }
 
@@ -42,7 +43,7 @@
   /* ---------- study ---------- */
   .study-header { text-align: center; margin-bottom: 10px; }
   .pair-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
-  .pair { font-size: 46px; font-weight: 800; line-height: 1; }
+  .pair { line-height: 0; }
   .word-lbl { font-size: 16px; color: #7a8090; margin-top: 2px; font-weight: 700; }
   .speak-btn { background: #eef1fb; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 17px; cursor: pointer; }
   .speak-btn:active { transform: scale(.9); }
@@ -206,6 +207,16 @@ function H(tag, cls, html){
 function digitGlyph(i){
   var g = DIGITS[String(i)];
   return { ch: String(i), strokes: g.s, arrows: g.a, x0: g.x0, x1: g.x1, cx: (g.x0 + g.x1) / 2 };
+}
+
+// big display digits use the workbook's own shapes too (the device font draws a 9 with a curly tail)
+function digitSVG(i, h){
+  var g = digitGlyph(i);
+  var svg = S('svg', {viewBox: '-6 2 112 136', 'class': 'dglyph', role: 'img', 'aria-label': String(i)});
+  svg.style.height = h + 'px';
+  var gg = S('g', {transform: 'translate(' + (50 - g.cx) + ',0)'}, svg);
+  g.strokes.forEach(function(d){ S('path', {d: d, fill: 'none', stroke: '#2c2c40', 'stroke-width': 17, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, gg); });
+  return svg;
 }
 
 /* ================= SOUND (effects + counting voice) + SPEECH ================= */
@@ -514,7 +525,8 @@ function renderMenu(){
   var prog = loadProg(), grid = H('div', 'tile-grid');
   for(var i = 0; i < 10; i++){
     (function(i){
-      var t = H('button', 'tile', '<span class="ch">' + i + '</span><span class="wd">' + NUM_WORDS[i] + '</span>' + (prog['n' + i] ? '<span class="star">⭐</span>' : ''));
+      var t = H('button', 'tile', '<span class="ch"></span><span class="wd">' + NUM_WORDS[i] + '</span>' + (prog['n' + i] ? '<span class="star">⭐</span>' : ''));
+      t.querySelector('.ch').appendChild(digitSVG(i, 46));
       t.addEventListener('click', function(){ state.screen = 'study'; state.idx = i; state.tab = 'watch'; render(); });
       grid.appendChild(t);
     })(i);
@@ -563,7 +575,9 @@ function renderStudy(){
   root.appendChild(bar);
 
   var head = H('div', 'study-header');
-  head.innerHTML = '<div class="pair-row"><div class="pair">' + n + '</div></div><div class="word-lbl">' + NUM_WORDS[n] + '</div><div class="speak-status" id="speak-status"></div>';
+  head.innerHTML = '<div class="pair-row"><div class="pair"></div></div><div class="word-lbl">' + NUM_WORDS[n] + '</div><div class="speak-status" id="speak-status"></div>';
+  head.querySelector('.pair').setAttribute('aria-label', String(n));
+  head.querySelector('.pair').appendChild(digitSVG(n, 58));
   var sp = H('button', 'speak-btn', '🔊'); sp.title = 'Hear it';
   sp.addEventListener('click', function(){ speak(NUM_WORDS[n]); });
   head.querySelector('.pair-row').appendChild(sp);
