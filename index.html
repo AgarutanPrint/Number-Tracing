@@ -26,6 +26,10 @@
   .tile .wd { font-size: 11px; color: #8a90a0; margin-top: 6px; }
   .tile .star { position: absolute; top: 3px; right: 4px; font-size: 13px; }
 
+  .reset-row { text-align: center; margin-top: 16px; }
+  .reset-btn { border: none; background: transparent; color: #9aa0ab; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+  .reset-btn:hover, .reset-btn:active { background: #f0f2f8; color: #6b7280; }
+
   /* ---------- top bar ---------- */
   .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
   .back-btn, .nav-btn, .icon-btn { background: #eceef4; border: none; border-radius: 10px; font-weight: 700; color: #33334d; cursor: pointer; }
@@ -516,7 +520,28 @@ function renderMenu(){
     })(i);
   }
   root.appendChild(grid);
+  var starCount = Object.keys(prog).filter(function(k){ return prog[k]; }).length;
+  if(starCount > 0){
+    var rr = H('div', 'reset-row'), rb = H('button', 'reset-btn', '↺ Reset stars (' + starCount + ')');
+    rb.addEventListener('click', confirmReset);
+    rr.appendChild(rb); root.appendChild(rr);
+  }
   return root;
+}
+
+// asks first, so a child cannot wipe the stars by accident
+function confirmReset(){
+  var old = document.querySelector('.cele-back'); if(old) old.remove();
+  var back = H('div', 'cele-back'), box = H('div', 'cele');
+  box.innerHTML = '<div class="big">🧹</div><h2>Start fresh?</h2><p>This takes away all the ⭐ stars so a new learner can begin again.</p>';
+  var row = H('div', 'control-row'), keep = H('button', 'ctrl-btn', 'Keep stars'), go = H('button', 'ctrl-btn primary', 'Reset stars');
+  keep.addEventListener('click', function(){ back.remove(); });
+  go.addEventListener('click', function(){
+    try{ localStorage.removeItem('nt_progress'); }catch(e){}
+    state.counts = {}; state.fills = {};
+    back.remove(); sfx.pop(); render();
+  });
+  row.appendChild(keep); row.appendChild(go); box.appendChild(row); back.appendChild(box); document.body.appendChild(back);
 }
 
 /* ---------- STUDY ---------- */
