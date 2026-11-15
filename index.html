@@ -24,7 +24,7 @@
   .tile:active { transform: scale(.95); }
   .tile .ch { display: block; line-height: 0; }
   .dglyph { display: block; width: auto; }
-  .tile .wd { font-size: 11px; color: #8a90a0; margin-top: 6px; }
+  .tile .wd { display: block; line-height: 0; margin-top: 8px; }
   .tile .star { position: absolute; top: 3px; right: 4px; font-size: 13px; }
 
   .reset-row { text-align: center; margin-top: 16px; }
@@ -44,7 +44,10 @@
   .study-header { text-align: center; margin-bottom: 10px; }
   .pair-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
   .pair { line-height: 0; }
-  .word-lbl { font-size: 16px; color: #7a8090; margin-top: 2px; font-weight: 700; }
+  .word-lbl { display: flex; justify-content: center; line-height: 0; margin-top: 8px; }
+  .word-cap { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 2px 0 4px; }
+  .word-cap .wc-t { font-size: 13px; color: #999; }
+  .word-cap .wc-eq { font-size: 22px; font-weight: 800; color: #2c2c40; }
   .speak-btn { background: #eef1fb; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 17px; cursor: pointer; }
   .speak-btn:active { transform: scale(.9); }
   .speak-status { font-size: 11px; color: #3f7be0; min-height: 14px; margin-top: 2px; }
@@ -216,6 +219,19 @@ function digitSVG(i, h){
   svg.style.height = h + 'px';
   var gg = S('g', {transform: 'translate(' + (50 - g.cx) + ',0)'}, svg);
   g.strokes.forEach(function(d){ S('path', {d: d, fill: 'none', stroke: '#2c2c40', 'stroke-width': 17, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, gg); });
+  return svg;
+}
+
+function wordSVG(word, h, color){   // a number word in the workbook's lowercase letter shapes
+  var cursor = 9, GAP = 26, items = [];
+  word.split('').forEach(function(ch){ var g = LOWER[ch]; items.push({g: g, dx: cursor - g.x0}); cursor += (g.x1 - g.x0) + GAP; });
+  var W = cursor - GAP + 9;
+  var svg = S('svg', {viewBox: '0 4 ' + W + ' 180', 'class': 'dglyph', role: 'img', 'aria-label': word});
+  svg.style.height = h + 'px';
+  items.forEach(function(it){
+    var gg = S('g', {transform: 'translate(' + it.dx + ',0)'}, svg);
+    it.g.s.forEach(function(d){ S('path', {d: d, fill: 'none', stroke: color || '#2c2c40', 'stroke-width': 17, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, gg); });
+  });
   return svg;
 }
 
@@ -525,8 +541,9 @@ function renderMenu(){
   var prog = loadProg(), grid = H('div', 'tile-grid');
   for(var i = 0; i < 10; i++){
     (function(i){
-      var t = H('button', 'tile', '<span class="ch"></span><span class="wd">' + NUM_WORDS[i] + '</span>' + (prog['n' + i] ? '<span class="star">⭐</span>' : ''));
+      var t = H('button', 'tile', '<span class="ch"></span><span class="wd"></span>' + (prog['n' + i] ? '<span class="star">⭐</span>' : ''));
       t.querySelector('.ch').appendChild(digitSVG(i, 46));
+      t.querySelector('.wd').appendChild(wordSVG(NUM_WORDS[i], 18, '#8a90a0'));
       t.addEventListener('click', function(){ state.screen = 'study'; state.idx = i; state.tab = 'watch'; render(); });
       grid.appendChild(t);
     })(i);
@@ -575,7 +592,8 @@ function renderStudy(){
   root.appendChild(bar);
 
   var head = H('div', 'study-header');
-  head.innerHTML = '<div class="pair-row"><div class="pair"></div></div><div class="word-lbl">' + NUM_WORDS[n] + '</div><div class="speak-status" id="speak-status"></div>';
+  head.innerHTML = '<div class="pair-row"><div class="pair"></div></div><div class="word-lbl"></div><div class="speak-status" id="speak-status"></div>';
+  head.querySelector('.word-lbl').appendChild(wordSVG(NUM_WORDS[n], 30, '#7a8090'));
   head.querySelector('.pair').setAttribute('aria-label', String(n));
   head.querySelector('.pair').appendChild(digitSVG(n, 58));
   var sp = H('button', 'speak-btn', '🔊'); sp.title = 'Hear it';
@@ -780,7 +798,10 @@ function tabWrite(){
 /* ---------- WORD ---------- */
 function tabWord(){
   var box = H('div'), n = state.idx, word = NUM_WORDS[n];
-  box.appendChild(H('div', 'hint-text', '<span style="font-size:13px">Trace the word:</span> <b style="font-size:20px;color:#2c2c40">' + n + ' = ' + word + '</b>'));
+  var cap = H('div', 'word-cap'); cap.setAttribute('aria-label', n + ' = ' + word);
+  cap.innerHTML = '<span class="wc-t">Trace the word:</span>';
+  cap.appendChild(digitSVG(n, 38)); cap.appendChild(H('span', 'wc-eq', '=')); cap.appendChild(wordSVG(word, 38, '#2c2c40'));
+  box.appendChild(cap);
   var wt = wordTracer(word, {interactive: true}), tr = wt.tracer;
   currentTracer = tr;
   tr.onDone = function(){
